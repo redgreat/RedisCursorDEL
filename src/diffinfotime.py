@@ -39,7 +39,7 @@ try:
                     password=redis_user + ':' + redis_password, decode_responses=True)
     logger.info("成功连接到 Redis 数据库")
 except Exception as e:
-    logger.info(f"连接 Redis 数据库失败：{e}")
+    logger.error(f"连接 Redis 数据库失败：{e}")
     exit()
 
 # 获取所有键
@@ -56,17 +56,17 @@ def process_key(key):
     value = r.get(key)
     if value:
         data = json.loads(value)
-        create_time_str = data.get('receiveTime')
-        mysql_insert_time_str = data.get('MySQLInsertTime')
-        if not create_time_str or not mysql_insert_time_str:
+        create_time_str = data.get('createTime')
+        insert_time_str = data.get('insertTime')  # 假设每个键的值中都有一个insertTime字段
+        if not create_time_str or not insert_time_str:
             return None
 
         try:
             create_time = datetime.strptime(create_time_str, '%Y-%m-%d %H:%M:%S')
-            mysql_insert_time = datetime.strptime(mysql_insert_time_str, '%Y-%m-%d %H:%M:%S')
+            insert_time = datetime.strptime(insert_time_str, '%Y-%m-%d %H:%M:%S')
             
             # 计算时间差（以秒为单位）
-            time_diff = (create_time - mysql_insert_time).total_seconds()
+            time_diff = (create_time - insert_time).total_seconds()
             
             # 返回结果
             return key, time_diff

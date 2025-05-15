@@ -1,6 +1,7 @@
 import redis
 import configparser
 from loguru import logger
+import os
 
 # 数据库连接定义
 config = configparser.ConfigParser()
