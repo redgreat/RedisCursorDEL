@@ -1,0 +1,75 @@
+// 最长时长
+GET /test_index/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "exists": {
+            "field": "consumeTime"
+          }
+        },
+        {
+          "exists": {
+            "field": "mysqlInsertTime"
+          }
+        }
+      ]
+    }
+  },
+  "size": 10000,
+  "sort": [
+    {
+      "_script": {
+        "type": "number",
+        "script": {
+          "lang": "painless",
+          "source": """
+            long createTimeMillis = doc['consumeTime'].value.toInstant().toEpochMilli();
+            long mysqlInsertTimeMillis = doc['mysqlInsertTime'].value.toInstant().toEpochMilli();
+            return createTimeMillis - mysqlInsertTimeMillis;
+          """
+        },
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+// 平均时长
+GET /test_index/_search
+{
+  "size": 0,
+  "aggs": {
+    "time_diff": {
+      "scripted_metric": {
+        "init_script": "state.diffs = []",
+        "map_script": """
+          if (doc['consumeTime'].size() > 0 && doc['mysqlInsertTime'].size() > 0) {
+            state.diffs.add(doc['consumeTime'].value.millis - doc['mysqlInsertTime'].value.millis);
+          }
+        """,
+        "combine_script": """
+          if (state.diffs.size() == 0) {
+            return null;
+          }
+          return state.diffs.stream().mapToLong(Long::longValue).average().orElse(0);
+        """,
+        "reduce_script": """
+          if (states.size() == 0) {
+            return null;
+          }
+          double total = 0;
+          int count = 0;
+          for (state in states) {
+            if (state != null) {
+              total += state;
+              count++;
+            }
+          }
+          return count == 0 ? null : total / count / 1000;
+        """
+      }
+    }
+  }
+}

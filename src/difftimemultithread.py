@@ -56,7 +56,7 @@ def process_key(key):
     value = r.get(key)
     if value:
         data = json.loads(value)
-        create_time_str = data.get('receiveTime')
+        create_time_str = data.get('createTime')
         mysql_insert_time_str = data.get('MySQLInsertTime')
         if not create_time_str or not mysql_insert_time_str:
             return None
